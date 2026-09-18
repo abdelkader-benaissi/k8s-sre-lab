@@ -1,0 +1,72 @@
+{{- $databasePassword := randAlphaNum 32 -}}
+{{- with (lookup "v1" "Secret" .Release.Namespace "database") -}}
+{{- $databasePassword = (index .data "password" | b64dec) -}}
+{{- end }}
+apiVersion: v1
+kind: Secret
+metadata: {name: database}
+type: Opaque
+stringData:
+  password: {{ $databasePassword | quote }}
+  url: {{ printf "postgres://app:%s@postgres:5432/app?sslmode=disable" $databasePassword | quote }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: postgres}
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector: {matchLabels: {app: postgres}}
+  template:
+    metadata: {labels: {app: postgres}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 999, runAsGroup: 999, fsGroup: 999, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image }}
+          env:
+            - {name: POSTGRES_DB, value: app}
+            - {name: POSTGRES_USER, value: app}
+            - {name: POSTGRES_PASSWORD, valueFrom: {secretKeyRef: {name: database, key: password}}}
+          ports: [{name: postgres, containerPort: 5432}]
+          readinessProbe: {exec: {command: [pg_isready, -U, app]}, periodSeconds: 5}
+          resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+          volumeMounts: [{name: data, mountPath: /var/lib/postgresql/data}, {name: run, mountPath: /var/run/postgresql}, {name: tmp, mountPath: /tmp}]
+      volumes: [{name: run, emptyDir: {}}, {name: tmp, emptyDir: {}}]
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: 1Gi}}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: postgres}
+spec: {clusterIP: None, selector: {app: postgres}, ports: [{port: 5432}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: redis}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: redis}}
+  template:
+    metadata: {labels: {app: redis}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 999, runAsGroup: 999, fsGroup: 999, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          args: [--save, "", --appendonly, "no"]
+          ports: [{name: redis, containerPort: 6379}]
+          readinessProbe: {exec: {command: [redis-cli, ping]}, periodSeconds: 5}
+          resources: {requests: {cpu: 50m, memory: 32Mi}, limits: {cpu: 250m, memory: 96Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+          volumeMounts: [{name: data, mountPath: /data}, {name: tmp, mountPath: /tmp}]
+      volumes: [{name: data, emptyDir: {}}, {name: tmp, emptyDir: {}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: redis}
+spec: {selector: {app: redis}, ports: [{port: 6379}]}

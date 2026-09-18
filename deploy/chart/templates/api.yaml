@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: sre-api}
+spec:
+  replicas: {{ .Values.replicas }}
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  progressDeadlineSeconds: 120
+  selector: {matchLabels: {app: sre-api}}
+  template:
+    metadata:
+      labels: {app: sre-api}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/port: "8080"}
+    spec:
+      automountServiceAccountToken: false
+      topologySpreadConstraints:
+        - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: ScheduleAnyway, labelSelector: {matchLabels: {app: sre-api}}}
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: REDIS_URL, value: "redis://redis:6379/0"}
+            - {name: DATABASE_URL, valueFrom: {secretKeyRef: {name: database, key: url}}}
+          startupProbe: {httpGet: {path: /health/startup, port: http}, failureThreshold: 30, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /health/ready, port: http}, periodSeconds: 5, failureThreshold: 2}
+          livenessProbe: {httpGet: {path: /health/live, port: http}, periodSeconds: 10, failureThreshold: 3}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+          volumeMounts: [{name: tmp, mountPath: /tmp}]
+      volumes: [{name: tmp, emptyDir: {}}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: sre-api, labels: {app: sre-api}}
+spec: {selector: {app: sre-api}, ports: [{name: http, port: 80, targetPort: http}]}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: sre-api}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: sre-api}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  behavior:
+    scaleUp: {stabilizationWindowSeconds: 0, policies: [{type: Percent, value: 100, periodSeconds: 60}]}
+    scaleDown: {stabilizationWindowSeconds: 300, policies: [{type: Percent, value: 25, periodSeconds: 60}]}
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: {{ .Values.hpa.cpu }}}}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: sre-api}
+spec: {minAvailable: 2, selector: {matchLabels: {app: sre-api}}}

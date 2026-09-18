@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 505" role="img" aria-labelledby="title desc">
+  <title id="title">Kubernetes SRE lab architecture</title>
+  <desc id="desc">Load generators send requests to a replicated Go API. The API uses PostgreSQL and Redis. Prometheus scrapes API metrics and evaluates SLO rules, while Grafana displays signals. Fault scripts perturb the service and recovery returns it to baseline.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1220"/><stop offset="1" stop-color="#142641"/></linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4 0 8Z" fill="#7dd3fc"/></marker>
+  </defs>
+  <rect width="1200" height="505" rx="24" fill="url(#bg)"/>
+  <text x="48" y="52" fill="#f8fafc" font-family="Arial,sans-serif" font-size="26" font-weight="700">Kubernetes SRE Lab</text>
+  <text x="48" y="83" fill="#94a3b8" font-family="Arial,sans-serif" font-size="16">Fault injection → service impact → telemetry → recovery</text>
+  <rect x="46" y="120" width="205" height="130" rx="16" fill="#172a44" stroke="#38bdf8" stroke-width="2"/>
+  <text x="65" y="159" fill="#f8fafc" font-family="Arial,sans-serif" font-size="20" font-weight="700">Load + faults</text>
+  <text x="65" y="190" fill="#bae6fd" font-family="Arial,sans-serif" font-size="15">Fortio / experiments</text>
+  <text x="65" y="217" fill="#94a3b8" font-family="Arial,sans-serif" font-size="14">One fault at a time</text>
+  <path d="M251 183H306" stroke="#7dd3fc" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="319" y="120" width="260" height="130" rx="16" fill="#152c37" stroke="#34d399" stroke-width="2"/>
+  <text x="340" y="159" fill="#f8fafc" font-family="Arial,sans-serif" font-size="20" font-weight="700">Replicated Go API</text>
+  <text x="340" y="190" fill="#a7f3d0" font-family="Arial,sans-serif" font-size="15">Probes · HPA · PDB</text>
+  <text x="340" y="217" fill="#94a3b8" font-family="Arial,sans-serif" font-size="14">Requests + latency histogram</text>
+  <path d="M579 184H630" stroke="#7dd3fc" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="643" y="120" width="242" height="130" rx="16" fill="#182d39" stroke="#34d399"/>
+  <text x="664" y="159" fill="#f8fafc" font-family="Arial,sans-serif" font-size="20" font-weight="700">Dependencies</text>
+  <text x="664" y="190" fill="#cbd5e1" font-family="Arial,sans-serif" font-size="16">PostgreSQL</text>
+  <text x="664" y="217" fill="#cbd5e1" font-family="Arial,sans-serif" font-size="16">Redis</text>
+  <rect x="46" y="302" width="383" height="125" rx="16" fill="#172a44" stroke="#38bdf8"/>
+  <text x="66" y="342" fill="#f8fafc" font-family="Arial,sans-serif" font-size="20" font-weight="700">Prometheus + Grafana</text>
+  <text x="66" y="373" fill="#bae6fd" font-family="Arial,sans-serif" font-size="15">ServiceMonitor · request metrics</text>
+  <text x="66" y="399" fill="#94a3b8" font-family="Arial,sans-serif" font-size="14">Traffic, latency, saturation, errors</text>
+  <path d="M449 250V296H250" fill="none" stroke="#7dd3fc" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M429 364H492" fill="none" stroke="#7dd3fc" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="505" y="302" width="380" height="125" rx="16" fill="#182d39" stroke="#34d399"/>
+  <text x="526" y="342" fill="#f8fafc" font-family="Arial,sans-serif" font-size="20" font-weight="700">SLO alerts</text>
+  <text x="526" y="373" fill="#cbd5e1" font-family="Arial,sans-serif" font-size="15">Availability burn · latency threshold</text>
+  <text x="526" y="399" fill="#94a3b8" font-family="Arial,sans-serif" font-size="14">Promtool verifies low-traffic behavior</text>
+  <text x="48" y="474" fill="#94a3b8" font-family="Arial,sans-serif" font-size="14">Disposable Kind environment · single-host data dependencies · incident evidence must be collected during live drills.</text>
+</svg>

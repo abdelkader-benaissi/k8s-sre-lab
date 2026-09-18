@@ -1,0 +1,19 @@
+name: e2e
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions: {contents: read}
+jobs:
+  kind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+        with: {install_only: true}
+      - uses: azure/setup-helm@v4
+      - run: make cluster
+      - run: make deploy
+      - run: make smoke
+      - run: kubectl -n sre-lab get pods,hpa,pdb

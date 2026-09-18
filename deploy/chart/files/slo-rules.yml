@@ -1,0 +1,31 @@
+groups:
+  - name: sre-api.recording
+    interval: 30s
+    rules:
+      - record: job:sre_api_errors_per_request:ratio_rate5m
+        expr: sum(rate(http_requests_total{job="sre-api",code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{job="sre-api"}[5m])), 1e-9)
+      - record: job:sre_api_latency_le_500ms:ratio_rate5m
+        expr: sum(rate(http_request_duration_seconds_bucket{job="sre-api",le="0.5"}[5m])) / clamp_min(sum(rate(http_request_duration_seconds_count{job="sre-api"}[5m])), 1e-9)
+  - name: sre-api.alerts
+    rules:
+      - alert: SREApiFastErrorBudgetBurn
+        expr: |
+          (sum(rate(http_requests_total{job="sre-api",code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{job="sre-api"}[5m])), 1e-9) > 14.4 * 0.001)
+          and
+          (sum(rate(http_requests_total{job="sre-api",code=~"5.."}[1h])) / clamp_min(sum(rate(http_requests_total{job="sre-api"}[1h])), 1e-9) > 14.4 * 0.001)
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "API is rapidly consuming the 99.9% availability error budget"}
+      - alert: SREApiSlowErrorBudgetBurn
+        expr: |
+          (sum(rate(http_requests_total{job="sre-api",code=~"5.."}[30m])) / clamp_min(sum(rate(http_requests_total{job="sre-api"}[30m])), 1e-9) > 6 * 0.001)
+          and
+          (sum(rate(http_requests_total{job="sre-api",code=~"5.."}[6h])) / clamp_min(sum(rate(http_requests_total{job="sre-api"}[6h])), 1e-9) > 6 * 0.001)
+        for: 30m
+        labels: {severity: warning}
+        annotations: {summary: "API is persistently consuming the availability error budget"}
+      - alert: SREApiLatencySLOBreach
+        expr: job:sre_api_latency_le_500ms:ratio_rate5m < 0.99
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "Less than 99% of API requests complete within 500 ms"}

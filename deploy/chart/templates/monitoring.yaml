@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sre-api
+  labels: {release: monitoring}
+spec:
+  jobLabel: app
+  selector: {matchLabels: {app: sre-api}}
+  endpoints: [{port: http, path: /metrics, interval: 15s}]
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sre-api-slos
+  labels: {release: monitoring}
+spec:
+{{ .Files.Get "files/slo-rules.yml" | nindent 2 }}

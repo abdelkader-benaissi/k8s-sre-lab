@@ -1,0 +1,26 @@
+rule_files:
+  - ../deploy/chart/files/slo-rules.yml
+evaluation_interval: 1m
+tests:
+  - name: healthy traffic does not burn the budget
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="sre-api",code="200"}'
+        values: '0+60x400'
+      - series: 'http_requests_total{job="sre-api",code="500"}'
+        values: '0+0x400'
+    alert_rule_test:
+      - eval_time: 2h
+        alertname: SREApiFastErrorBudgetBurn
+        exp_alerts: []
+  - name: low traffic with every request failing is still a full outage
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="sre-api",code="500"}'
+        values: '0+1x400'
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: SREApiFastErrorBudgetBurn
+        exp_alerts:
+          - exp_labels: {severity: critical}
+            exp_annotations: {summary: "API is rapidly consuming the 99.9% availability error budget"}
