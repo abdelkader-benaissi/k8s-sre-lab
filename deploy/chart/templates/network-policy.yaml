@@ -24,6 +24,19 @@ spec:
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
+metadata: {name: smoke-to-api}
+spec:
+  podSelector: {matchLabels: {access: sre-api}}
+  policyTypes: [Egress]
+  egress:
+    - {to: [{podSelector: {matchLabels: {app: sre-api}}}], ports: [{port: 8080}]}
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
 metadata: {name: dependencies-from-api}
 spec:
   podSelector: {matchExpressions: [{key: app, operator: In, values: [postgres, redis]}]}
