@@ -12,8 +12,8 @@ deploy: bootstrap image
 validate:
 	helm lint deploy/chart
 	helm template sre-demo deploy/chart -n sre-lab | kubectl apply --dry-run=client -f -
-	docker run --rm -v "$(CURDIR):/work" -w /work prom/prometheus:v3.5.0 promtool check rules deploy/chart/files/slo-rules.yml
-	docker run --rm -v "$(CURDIR):/work" -w /work prom/prometheus:v3.5.0 promtool test rules observability/rules.test.yml
+	docker run --rm --entrypoint=/bin/promtool -v "$(CURDIR):/work" -w /work prom/prometheus:v3.5.0 check rules deploy/chart/files/slo-rules.yml
+	docker run --rm --entrypoint=/bin/promtool -v "$(CURDIR):/work" -w /work prom/prometheus:v3.5.0 test rules observability/rules.test.yml
 smoke:
 	./scripts/smoke.sh
 evidence:

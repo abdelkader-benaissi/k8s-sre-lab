@@ -29,5 +29,5 @@ jobs:
           -ignore-missing-schemas /tmp/all.yaml
       - uses: aquasecurity/trivy-action@v0.36.0
         with: {scan-type: config, scan-ref: '.', severity: 'HIGH,CRITICAL', exit-code: '1'}
-      - run: docker run --rm -v "$PWD:/work" -w /work prom/prometheus:v3.5.0 promtool check rules deploy/chart/files/slo-rules.yml
-      - run: docker run --rm -v "$PWD:/work" -w /work prom/prometheus:v3.5.0 promtool test rules observability/rules.test.yml
+      - run: docker run --rm --entrypoint=/bin/promtool -v "$PWD:/work" -w /work prom/prometheus:v3.5.0 check rules deploy/chart/files/slo-rules.yml
+      - run: docker run --rm --entrypoint=/bin/promtool -v "$PWD:/work" -w /work prom/prometheus:v3.5.0 test rules observability/rules.test.yml
