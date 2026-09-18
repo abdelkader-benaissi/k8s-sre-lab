@@ -29,6 +29,7 @@ spec:
             - {name: POSTGRES_DB, value: app}
             - {name: POSTGRES_USER, value: app}
             - {name: POSTGRES_PASSWORD, valueFrom: {secretKeyRef: {name: database, key: password}}}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
           ports: [{name: postgres, containerPort: 5432}]
           readinessProbe: {exec: {command: [pg_isready, -U, app]}, periodSeconds: 5}
           resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 256Mi}}

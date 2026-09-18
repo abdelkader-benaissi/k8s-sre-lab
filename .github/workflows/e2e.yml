@@ -15,5 +15,14 @@ jobs:
       - uses: azure/setup-helm@v4
       - run: make cluster
       - run: make deploy
+      - name: Diagnose failed deployment
+        if: failure()
+        run: |
+          kubectl -n sre-lab get pods,pvc -o wide || true
+          kubectl -n sre-lab describe pods || true
+          kubectl -n sre-lab get events --sort-by=.lastTimestamp || true
+          for app in postgres redis sre-api; do
+            kubectl -n sre-lab logs -l "app=$app" --all-containers --tail=80 --prefix || true
+          done
       - run: make smoke
       - run: kubectl -n sre-lab get pods,hpa,pdb
